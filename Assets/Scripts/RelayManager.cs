@@ -6,6 +6,8 @@ using Unity.Services.Relay.Models;
 using Unity.Networking.Transport.Relay;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
+using Unity.Services.Core;
+using Unity.Services.Authentication;
 using System.Threading.Tasks;
 
 public class RelayManager : MonoBehaviour
@@ -16,25 +18,31 @@ public class RelayManager : MonoBehaviour
     [SerializeField] private Button hostButton;         // Host 버튼
     [SerializeField] private Button clientButton;       // Client 버튼
 
-    private string joinCode;
+    private string joinCode; // 코드 저장용
 
-    private void Start()
+    private async void Start()
     {
-        // (1) 버튼 클릭 이벤트 연결
+        if (!UnityServices.State.Equals(ServicesInitializationState.Initialized))
+        {
+            await UnityServices.InitializeAsync();
+        }
+
+        if (!AuthenticationService.Instance.IsSignedIn)
+        {
+            await AuthenticationService.Instance.SignInAnonymouslyAsync();
+        }
+
         hostButton.onClick.AddListener(HostRelay);
         clientButton.onClick.AddListener(ClientRelay);
 
-        // (2) 네트워크 연결 완료 이벤트 등록
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
     }
 
     private void OnDestroy()
     {
-        // (1) 버튼 이벤트 해제
         hostButton.onClick.RemoveListener(HostRelay);
         clientButton.onClick.RemoveListener(ClientRelay);
 
-        // (2) 네트워크 연결 이벤트 해제
         if (NetworkManager.Singleton != null)
             NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
     }
@@ -46,7 +54,7 @@ public class RelayManager : MonoBehaviour
             Allocation allocation = await RelayService.Instance.CreateAllocationAsync(1);
             joinCode = await RelayService.Instance.GetJoinCodeAsync(allocation.AllocationId);
 
-            joinCodeText.text = joinCode;  // 생성된 코드 표시
+            joinCodeText.text = joinCode;
 
             UnityTransport transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
             transport.SetRelayServerData(new RelayServerData(allocation, "dtls"));
@@ -63,7 +71,7 @@ public class RelayManager : MonoBehaviour
     {
         try
         {
-            joinCode = joinCodeInput.text;  // 입력한 코드 읽기
+            joinCode = joinCodeInput.text;
 
             JoinAllocation joinAllocation = await RelayService.Instance.JoinAllocationAsync(joinCode);
 
@@ -80,9 +88,15 @@ public class RelayManager : MonoBehaviour
 
     private void OnClientConnected(ulong clientId)
     {
-        if (NetworkManager.Singleton.IsHost || NetworkManager.Singleton.IsClient)
+        // (⭐) Host가 판단: 현재 연결된 사람 수가 2명 이상일 때만 이동
+        if (NetworkManager.Singleton.IsHost)
         {
-            SceneManager.LoadScene("Game");
+            int connectedClientCount = NetworkManager.Singleton.ConnectedClients.Count;
+
+            if (connectedClientCount >= 2)  // Host(1) + Client(1)
+            {
+                SceneManager.LoadScene("Game");
+            }
         }
     }
 }

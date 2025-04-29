@@ -135,7 +135,7 @@ GameObject:
   - component: {fileID: 177399346}
   - component: {fileID: 177399345}
   m_Layer: 0
-  m_Name: RelayManager
+  m_Name: NetworkManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -182,7 +182,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   NetworkConfig:
     ProtocolVersion: 0
-    NetworkTransport: {fileID: 0}
+    NetworkTransport: {fileID: 177399345}
     PlayerPrefab: {fileID: 0}
     Prefabs:
       NetworkPrefabsLists:
