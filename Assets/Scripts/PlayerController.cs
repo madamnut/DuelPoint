@@ -1,25 +1,58 @@
 using UnityEngine;
-using Unity.Netcode;
 
-public class PlayerController : NetworkBehaviour
+public class PlayerController : MonoBehaviour
 {
     public float moveSpeed = 5f;
-    public float rotateSpeed = 100f;
+    public float mouseSensitivity = 2f;
+
+    public Transform headTransform;   // 머리 (회전용)
+    public Transform bodyVisual;      // 시각적 바디 (캡슐)
+
+    float xRotation = 0f;
+
+    private Rigidbody rb;
+
+    private void Start()
+    {
+        rb = GetComponent<Rigidbody>();
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
 
     private void Update()
     {
-        // (1) 자기 자신의 오브젝트만 조작
-        if (!IsOwner) return;
+        HandleMouseLook();
+    }
 
-        // (2) 이동
-        float h = Input.GetAxis("Horizontal"); // A, D
-        float v = Input.GetAxis("Vertical");   // W, S
+    private void FixedUpdate()
+    {
+        HandleMovement();
+    }
 
-        Vector3 move = new Vector3(h, 0, v) * moveSpeed * Time.deltaTime;
-        transform.Translate(move, Space.Self);
+    private void HandleMovement()
+    {
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
 
-        // (3) 마우스 좌우 회전
-        float mouseX = Input.GetAxis("Mouse X");
-        transform.Rotate(Vector3.up, mouseX * rotateSpeed * Time.deltaTime);
+        Vector3 direction = transform.right * h + transform.forward * v;
+        Vector3 velocity = direction.normalized * moveSpeed;
+
+        Vector3 move = new Vector3(velocity.x, rb.velocity.y, velocity.z);
+        rb.velocity = move;
+    }
+
+    private void HandleMouseLook()
+    {
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+
+        // 수직 회전
+        xRotation -= mouseY;
+        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+        headTransform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+
+        // 수평 회전 (플레이어 루트 회전)
+        transform.Rotate(Vector3.up * mouseX);
     }
 }
