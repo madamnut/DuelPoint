@@ -88,14 +88,14 @@ public class RelayManager : MonoBehaviour
 
     private void OnClientConnected(ulong clientId)
     {
-        // (⭐) Host가 판단: 현재 연결된 사람 수가 2명 이상일 때만 이동
         if (NetworkManager.Singleton.IsHost)
         {
             int connectedClientCount = NetworkManager.Singleton.ConnectedClients.Count;
 
-            if (connectedClientCount >= 2)  // Host(1) + Client(1)
+            if (connectedClientCount >= 2) // Host + Client
             {
-                SceneManager.LoadScene("Game");
+                // ✅ Netcode 방식으로 씬 이동 (Client 자동 동기화)
+                NetworkManager.Singleton.SceneManager.LoadScene("Game", LoadSceneMode.Single);
             }
         }
     }
