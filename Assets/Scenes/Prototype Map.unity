@@ -276,7 +276,7 @@ PrefabInstance:
       objectReference: {fileID: 114829056}
     - target: {fileID: -4302132926608077165, guid: dc3fbf2951bdfd341bde807d676f728b, type: 3}
       propertyPath: enableHeadBob
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -4302132926608077165, guid: dc3fbf2951bdfd341bde807d676f728b, type: 3}
       propertyPath: crosshairImage
@@ -366,7 +366,7 @@ PrefabInstance:
     - target: {fileID: 3965252306837447694, guid: fc5a676d2c90b3d4f8a22e369c35950d, type: 3}
       propertyPath: m_Material
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 13400000, guid: c2566adbba936e249848ffac5feb46ab, type: 2}
     - target: {fileID: 4603156116648498359, guid: fc5a676d2c90b3d4f8a22e369c35950d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -414,7 +414,7 @@ PrefabInstance:
     - target: {fileID: 5137043069926549367, guid: fc5a676d2c90b3d4f8a22e369c35950d, type: 3}
       propertyPath: m_Material
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 13400000, guid: c2566adbba936e249848ffac5feb46ab, type: 2}
     - target: {fileID: 5317103314229426644, guid: fc5a676d2c90b3d4f8a22e369c35950d, type: 3}
       propertyPath: m_Layer
       value: 0
