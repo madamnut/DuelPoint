@@ -50,12 +50,6 @@ public class PlayerController : MonoBehaviour
     public Color crosshairColor = Color.white;
     private Image crosshairObject;
 
-    [Header("Gun Settings")]
-    public GameObject bulletPrefab;
-    public Transform gunMuzzle;
-    public float bulletForce = 30f;
-    public float bulletLifetime = 2f;
-
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -89,9 +83,6 @@ public class PlayerController : MonoBehaviour
 
         if (enableCrouch && Input.GetKeyDown(crouchKey))
             ToggleCrouch();
-
-        if (Input.GetMouseButtonDown(0))
-            Shoot();
 
         CheckGround();
     }
@@ -151,40 +142,4 @@ public class PlayerController : MonoBehaviour
             isCrouched = true;
         }
     }
-
-    private void Shoot()
-    {
-        if (bulletPrefab == null || gunMuzzle == null || playerCamera == null) return;
-
-        GameObject bullet = Instantiate(bulletPrefab, gunMuzzle.position, Quaternion.identity);
-        if (bullet.TryGetComponent(out Rigidbody bulletRb))
-        {
-            Vector3 shootDir;
-            Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-            if (Physics.Raycast(ray, out RaycastHit hit))
-                shootDir = (hit.point - gunMuzzle.position).normalized;
-            else
-                shootDir = playerCamera.transform.forward;
-
-            bulletRb.AddForce(shootDir * bulletForce, ForceMode.Impulse);
-
-            // 자기 자신과 충돌 무시
-            if (bullet.TryGetComponent(out Collider bulletCol) && TryGetComponent(out Collider selfCol))
-                Physics.IgnoreCollision(selfCol, bulletCol);
-        }
-
-        Destroy(bullet, bulletLifetime);
-    }
 }
-
-#if UNITY_EDITOR
-[CustomEditor(typeof(PlayerController)), InitializeOnLoad]
-public class PlayerControllerEditor : Editor
-{
-    public override void OnInspectorGUI()
-    {
-        DrawDefaultInspector();
-        EditorGUILayout.HelpBox("Modular First Person Controller\nCustomized by ChatGPT", MessageType.Info);
-    }
-}
-#endif
