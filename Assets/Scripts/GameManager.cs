@@ -1,27 +1,49 @@
 using UnityEngine;
 using Unity.Netcode;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField] private GameObject playerPrefab; // 플레이어 프리팹
+    [SerializeField] private GameObject playerPrefab;
+    [SerializeField] private Transform spawnPoint1;
+    [SerializeField] private Transform spawnPoint2;
 
     private void Start()
     {
-        if (NetworkManager.Singleton.IsHost)
+        if (NetworkManager.Singleton.IsServer)
         {
-            // Host 스폰 (예: 원점)
-            SpawnPlayer(new Vector3(0f, 0f, 0f));
-        }
-        else if (NetworkManager.Singleton.IsClient)
-        {
-            // Client 스폰 (예: 오른쪽 5칸 떨어진 위치)
-            SpawnPlayer(new Vector3(5f, 0f, 0f));
+            // ✅ Host 본인 캐릭터 직접 생성
+            GameObject hostPlayer = Instantiate(playerPrefab, spawnPoint1.position, Quaternion.identity);
+            hostPlayer.name = "HostCha";
+            hostPlayer.GetComponent<NetworkObject>().SpawnAsPlayerObject(0);
+            Debug.Log("[GameManager] Host player spawned");
+
+            // ✅ 클라이언트용 콜백 등록
+            NetworkManager.Singleton.SceneManager.OnLoadComplete += OnSceneLoadComplete;
         }
     }
 
-    private void SpawnPlayer(Vector3 spawnPosition)
+    private void OnDestroy()
     {
-        GameObject player = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
-        player.GetComponent<NetworkObject>().SpawnAsPlayerObject(NetworkManager.Singleton.LocalClientId);
+        // ✅ Null 방지 조건 처리
+        if (NetworkManager.Singleton != null &&
+            NetworkManager.Singleton.SceneManager != null)
+        {
+            NetworkManager.Singleton.SceneManager.OnLoadComplete -= OnSceneLoadComplete;
+        }
+    }
+
+    private void OnSceneLoadComplete(ulong clientId, string sceneName, LoadSceneMode mode)
+    {
+        if (sceneName != "Game") return;
+        if (clientId == 0) return; // Host는 이미 스폰 완료
+
+        Vector3 spawnPos = spawnPoint2.position;
+
+        GameObject clientPlayer = Instantiate(playerPrefab, spawnPos, Quaternion.identity);
+        clientPlayer.name = "ClientCha";
+        clientPlayer.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+
+        Debug.Log($"[GameManager] Client player spawned (clientId={clientId}) at {spawnPos}");
     }
 }
