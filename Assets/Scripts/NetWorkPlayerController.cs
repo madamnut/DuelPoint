@@ -5,37 +5,29 @@ public class NetworkPlayerController : NetworkBehaviour
 {
     private Rigidbody rb;
 
-    [Header("Camera Settings")]
-    public Camera playerCamera;
-    public float fov = 60f;
-    public bool invertCamera = false;
-    public bool cameraCanMove = true;
-    public float mouseSensitivity = 2f;
-    public float maxLookAngle = 50f;
-
     [Header("Movement Settings")]
-    public bool playerCanMove = true;
     public float walkSpeed = 5f;
     public float sprintSpeed = 10f;
-    public KeyCode sprintKey = KeyCode.LeftShift;
     public float maxVelocityChange = 10f;
+    public KeyCode sprintKey = KeyCode.LeftShift;
 
     [Header("Jump Settings")]
-    public bool enableJump = true;
-    public KeyCode jumpKey = KeyCode.Space;
     public float jumpPower = 5f;
+
+    [Header("Camera Settings")]
+    public Camera playerCamera;
+    public float mouseSensitivity = 2f;
+    public float maxLookAngle = 50f;
+    public bool invertCamera = false;
 
     private float yaw;
     private float pitch;
     private bool isGrounded;
 
-    private void Awake()
-    {
-        rb = GetComponent<Rigidbody>();
-    }
-
     public override void OnNetworkSpawn()
     {
+        rb = GetComponent<Rigidbody>();
+
         if (!IsOwner)
         {
             if (playerCamera != null)
@@ -44,69 +36,56 @@ public class NetworkPlayerController : NetworkBehaviour
                 if (playerCamera.TryGetComponent(out AudioListener listener))
                     listener.enabled = false;
             }
-            return;
         }
-
-        // ✅ Owner일 경우 Rigidbody 재할당 보장
-        if (rb == null)
-            rb = GetComponent<Rigidbody>();
-
-        // ✅ 회전 기준 초기화
-        yaw = transform.eulerAngles.y;
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Debug.Log("[OnNetworkSpawn] Player controller ready");
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+        }
     }
 
     private void Update()
     {
         if (!IsOwner) return;
 
-        HandleCamera();
+        // 입력 감지 후 서버에 전송
+        Vector2 moveInput = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
+        bool isSprinting = Input.GetKey(sprintKey);
+        bool jumpPressed = Input.GetKeyDown(KeyCode.Space);
+        Vector2 mouseInput = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
 
-        if (enableJump && Input.GetKeyDown(jumpKey) && isGrounded)
-        {
-            Jump();
-        }
+        SendInputServerRpc(moveInput, isSprinting, jumpPressed, mouseInput);
     }
 
-    private void FixedUpdate()
+    [ServerRpc]
+    private void SendInputServerRpc(Vector2 moveInput, bool isSprinting, bool jumpPressed, Vector2 mouseInput)
     {
-        if (!IsOwner || !playerCanMove) return;
-        if (rb == null)
-        {
-            Debug.LogWarning("[FixedUpdate] Rigidbody is null");
-            return;
-        }
+        if (rb == null) return;
 
-        Vector3 input = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
-        Vector3 targetVelocity = transform.TransformDirection(input.normalized) *
-                                 (Input.GetKey(sprintKey) ? sprintSpeed : walkSpeed);
+        // 회전 처리
+        yaw += mouseInput.x * mouseSensitivity;
+        pitch += (invertCamera ? 1 : -1) * mouseSensitivity * mouseInput.y;
+        pitch = Mathf.Clamp(pitch, -maxLookAngle, maxLookAngle);
 
+        transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+        if (playerCamera != null)
+            playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+
+        // 이동 처리
+        Vector3 inputDir = new Vector3(moveInput.x, 0, moveInput.y).normalized;
+        Vector3 targetVelocity = transform.TransformDirection(inputDir) * (isSprinting ? sprintSpeed : walkSpeed);
         Vector3 velocityChange = targetVelocity - rb.velocity;
         velocityChange.x = Mathf.Clamp(velocityChange.x, -maxVelocityChange, maxVelocityChange);
         velocityChange.z = Mathf.Clamp(velocityChange.z, -maxVelocityChange, maxVelocityChange);
         velocityChange.y = 0;
 
         rb.AddForce(velocityChange, ForceMode.VelocityChange);
-    }
 
-    private void HandleCamera()
-    {
-        if (!IsOwner || !cameraCanMove || playerCamera == null) return;
-
-        yaw += Input.GetAxis("Mouse X") * mouseSensitivity;
-        pitch += (invertCamera ? 1 : -1) * mouseSensitivity * Input.GetAxis("Mouse Y");
-        pitch = Mathf.Clamp(pitch, -maxLookAngle, maxLookAngle);
-
-        rb.MoveRotation(Quaternion.Euler(0, yaw, 0));
-        playerCamera.transform.localRotation = Quaternion.Euler(pitch, 0, 0);
-    }
-
-    private void Jump()
-    {
-        rb.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
-        isGrounded = false;
+        // 점프 처리
+        if (jumpPressed && isGrounded)
+        {
+            rb.AddForce(Vector3.up * jumpPower, ForceMode.Impulse);
+            isGrounded = false;
+        }
     }
 
     private void OnCollisionStay(Collision collision)

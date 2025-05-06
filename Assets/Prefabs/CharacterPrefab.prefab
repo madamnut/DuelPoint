@@ -464,7 +464,7 @@ GameObject:
   - component: {fileID: 1861294763291418490}
   - component: {fileID: 6720299219464060806}
   - component: {fileID: 5262265586668303017}
-  - component: {fileID: 403408577801175704}
+  - component: {fileID: 3018617918431640178}
   m_Layer: 0
   m_Name: CharacterPrefab
   m_TagString: Untagged
@@ -602,7 +602,7 @@ MonoBehaviour:
   maxLookAngle: 50
   playerCanMove: 1
   walkSpeed: 5
-  sprintSpeed: 10
+  sprintSpeed: 7
   sprintKey: 304
   maxVelocityChange: 10
   enableJump: 1
@@ -639,7 +639,7 @@ MonoBehaviour:
   InLocalSpace: 0
   Interpolate: 1
   SlerpPosition: 0
---- !u!114 &403408577801175704
+--- !u!114 &3018617918431640178
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
